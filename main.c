@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// Cpu stats in ticks.
+typedef struct cpu_stat {
+  int64_t idle;
+  int64_t total;
+} cpu_stat;
+
+// Memory stats in bytes.
 typedef struct {
   int64_t used;
   int64_t total;
@@ -16,15 +23,15 @@ const long long MEM_FORMAT_THRESHOLD = 8LL << 30;
 #include <mach/mach.h>
 #include <sys/sysctl.h>
 
-void get_cpu_stat(long long *tot, long long *idle) {
+cpu_stat get_cpu_stat(void) {
   host_cpu_load_info_data_t stat;
   mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
   int ret = host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
                             (host_info_t)&stat, &count);
   assert(ret == KERN_SUCCESS);
-  *idle = stat.cpu_ticks[CPU_STATE_IDLE];
-  *tot = 0;
-  for (int i = 0; i < CPU_STATE_MAX; i++) *tot += stat.cpu_ticks[i];
+  int64_t total = 0;
+  for (int i = 0; i < CPU_STATE_MAX; i++) total += stat.cpu_ticks[i];
+  return (cpu_stat){.idle = stat.cpu_ticks[CPU_STATE_IDLE], .total = total};
 }
 
 mem_stat get_mem_usage(void) {
@@ -48,13 +55,13 @@ mem_stat get_mem_usage(void) {
 
 #else
 
-void get_cpu_stat(long long *tot, long long *idle) {
+cpu_stat get_cpu_stat(void) {
   FILE *fp = fopen("/proc/stat", "r");
   assert(fp != NULL);
-  long long user, nice, system;
-  int ret = fscanf(fp, "cpu %lld %lld %lld %lld", &user, &nice, &system, idle);
+  long long user = 0, nice = 0, system = 0, idle = 0;
+  int ret = fscanf(fp, "cpu %lld %lld %lld %lld", &user, &nice, &system, &idle);
   assert(ret == 4);
-  *tot = user + nice + system + *idle;
+  return (cpu_stat){.idle = idle, .total = user + nice + system + idle};
 }
 
 mem_stat get_mem_usage(void) {
@@ -73,17 +80,12 @@ mem_stat get_mem_usage(void) {
 #endif
 
 double get_cpu_usage(useconds_t sample_duration) {
-  long long tot1, idle1, tot2, idle2;
-  get_cpu_stat(&tot1, &idle1);
-  usleep(sample_duration);
-  get_cpu_stat(&tot2, &idle2);
-
-  while (tot1 == tot2) {
+  cpu_stat s0 = get_cpu_stat(), s1 = {};
+  do {
     usleep(sample_duration);  // XXX: lazy hack
-    get_cpu_stat(&tot2, &idle2);
-  }
-
-  return 1 - 1.0 * (idle2 - idle1) / (tot2 - tot1);
+    s1 = get_cpu_stat();
+  } while (s1.total == s0.total);
+  return 1 - 1.0 * (s1.idle - s0.idle) / (s1.total - s0.total);
 }
 
 int main(int argc, char *argv[]) {
