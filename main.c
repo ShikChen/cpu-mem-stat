@@ -68,11 +68,11 @@ mem_stat get_mem_usage(void) {
   FILE *fp = fopen("/proc/meminfo", "r");
   assert(fp != NULL);
   long long mem_total = 0, mem_unused = 0;
-  int ret = fscanf(fp, "MemTotal: %lld kB\nMemFree: %lld kB\n", &mem_total,
-                   &mem_unused);
-  assert(ret == 2);
+  int ret =
+      fscanf(fp, "MemTotal: %lld kB\nMemFree: %lld kB\nMemAvailable: %lld kB\n",
+             &mem_total, &mem_unused, &mem_unused);
   // May not have MemAvailable on older kernels.
-  fscanf(fp, "MemAvailable: %lld kB\n", &mem_unused);
+  assert(ret >= 2);
   return (mem_stat){.used = (mem_total - mem_unused) << 10,
                     .total = mem_total << 10};
 }
