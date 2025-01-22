@@ -84,13 +84,16 @@ mem_stat get_mem_usage(void) {
 
 #endif
 
-double get_cpu_usage(useconds_t sample_duration) {
+// Get CPU usage percentage over a sample duration.
+int get_cpu_usage(useconds_t sample_duration) {
   cpu_stat s0 = get_cpu_stat(), s1 = {};
   do {
     usleep(sample_duration);  // XXX: lazy hack
     s1 = get_cpu_stat();
   } while (s1.total == s0.total);
-  return 1 - 1.0 * (s1.idle - s0.idle) / (s1.total - s0.total);
+  int64_t total = s1.total - s0.total;
+  int64_t busy = total - (s1.idle - s0.idle);
+  return (100 * busy + total / 2) / total;
 }
 
 int main(int argc, char *argv[]) {
@@ -100,13 +103,12 @@ int main(int argc, char *argv[]) {
   } else {
     sample_duration = 100000;
   }
-  double cpu_usage = get_cpu_usage(sample_duration);
+  int cpu = get_cpu_usage(sample_duration);
   mem_stat mem = get_mem_usage();
   if (mem.total <= MEM_FORMAT_THRESHOLD) {
-    printf("%4.0f%% %lld/%lldM\n", cpu_usage * 100, mem.used >> 20,
-           mem.total >> 20);
+    printf("%3d%% %lld/%lldM\n", cpu, mem.used >> 20, mem.total >> 20);
   } else {
-    printf("%4.0f%% %.1f/%.1fG\n", cpu_usage * 100, 1.0 * mem.used / (1 << 30),
+    printf("%3d%% %.1f/%.1fG\n", cpu, 1.0 * mem.used / (1 << 30),
            1.0 * mem.total / (1 << 30));
   }
   return 0;
