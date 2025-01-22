@@ -1,8 +1,13 @@
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#define CHECK(expr)                                                    \
+  if (!(expr)) {                                                       \
+    fprintf(stderr, "Check failed at line %d: %s\n", __LINE__, #expr); \
+    exit(1);                                                           \
+  }
 
 // Cpu stats in ticks.
 typedef struct cpu_stat {
@@ -28,7 +33,7 @@ cpu_stat get_cpu_stat(void) {
   mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
   int ret = host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
                             (host_info_t)&stat, &count);
-  assert(ret == KERN_SUCCESS);
+  CHECK(ret == KERN_SUCCESS);
   int64_t total = 0;
   for (int i = 0; i < CPU_STATE_MAX; i++) total += stat.cpu_ticks[i];
   return (cpu_stat){.idle = stat.cpu_ticks[CPU_STATE_IDLE], .total = total};
@@ -37,19 +42,19 @@ cpu_stat get_cpu_stat(void) {
 mem_stat get_mem_usage(void) {
   vm_size_t page_size;
   int ret = host_page_size(mach_host_self(), &page_size);
-  assert(ret == KERN_SUCCESS);
+  CHECK(ret == KERN_SUCCESS);
   vm_statistics64_data_t stat;
   mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
   ret = host_statistics64(mach_host_self(), HOST_VM_INFO64,
                           (host_info64_t)&stat, &count);
-  assert(ret == KERN_SUCCESS);
+  CHECK(ret == KERN_SUCCESS);
   int64_t used = (int64_t)(stat.internal_page_count - stat.purgeable_count +
                            stat.wire_count + stat.compressor_page_count) *
                  page_size;
   int64_t total = 0;
   size_t tot_size = sizeof(total);
   ret = sysctlbyname("hw.memsize", &total, &tot_size, NULL, 0);
-  assert(ret == 0);
+  CHECK(ret == 0);
   return (mem_stat){.used = used, .total = total};
 }
 
@@ -57,22 +62,22 @@ mem_stat get_mem_usage(void) {
 
 cpu_stat get_cpu_stat(void) {
   FILE *fp = fopen("/proc/stat", "r");
-  assert(fp != NULL);
+  CHECK(fp != NULL);
   long long user = 0, nice = 0, system = 0, idle = 0;
   int ret = fscanf(fp, "cpu %lld %lld %lld %lld", &user, &nice, &system, &idle);
-  assert(ret == 4);
+  CHECK(ret == 4);
   return (cpu_stat){.idle = idle, .total = user + nice + system + idle};
 }
 
 mem_stat get_mem_usage(void) {
   FILE *fp = fopen("/proc/meminfo", "r");
-  assert(fp != NULL);
+  CHECK(fp != NULL);
   long long mem_total = 0, mem_unused = 0;
   int ret =
       fscanf(fp, "MemTotal: %lld kB\nMemFree: %lld kB\nMemAvailable: %lld kB\n",
              &mem_total, &mem_unused, &mem_unused);
   // May not have MemAvailable on older kernels.
-  assert(ret >= 2);
+  CHECK(ret >= 2);
   return (mem_stat){.used = (mem_total - mem_unused) << 10,
                     .total = mem_total << 10};
 }
