@@ -9,4 +9,8 @@ pub fn build(b: *std.Build) void {
     exe.addCSourceFiles(.{ .files = &.{"main.c"} });
     exe.linkLibC();
     b.installArtifact(exe);
+
+    const run_exe = b.addRunArtifact(exe);
+    const run_step = b.step("run", "Run the application");
+    run_step.dependOn(&run_exe.step);
 }
