@@ -29,14 +29,30 @@ const long long MEM_FORMAT_THRESHOLD = 8LL << 30;
 #include <sys/sysctl.h>
 
 cpu_stat get_cpu_stat(void) {
-  host_cpu_load_info_data_t stat;
-  mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
-  int ret = host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
-                            (host_info_t)&stat, &count);
+  // See
+  // https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/osfmk/kern/host.c#L1162
+  // for the implementation of host_processor_info().
+  //
+  // Note that we don't use host_statistics() with HOST_CPU_LOAD_INFO because
+  // its update frquency is too low.
+  natural_t cpu_count = 0;
+  processor_info_array_t info = NULL;
+  mach_msg_type_number_t info_count = 0;
+  int ret = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO,
+                                &cpu_count, &info, &info_count);
   CHECK(ret == KERN_SUCCESS);
-  int64_t total = 0;
-  for (int i = 0; i < CPU_STATE_MAX; i++) total += stat.cpu_ticks[i];
-  return (cpu_stat){.idle = stat.cpu_ticks[CPU_STATE_IDLE], .total = total};
+  int64_t idle = 0, total = 0;
+  for (natural_t i = 0; i < cpu_count; i++) {
+    unsigned int *ticks = ((processor_cpu_load_info_data_t *)info)[i].cpu_ticks;
+    idle += ticks[CPU_STATE_IDLE];
+    for (int j = 0; j < CPU_STATE_MAX; j++) {
+      total += ticks[j];
+    }
+  }
+  ret = vm_deallocate(mach_task_self(), (vm_address_t)info,
+                      info_count * sizeof(*info));
+  CHECK(ret == KERN_SUCCESS);
+  return (cpu_stat){.idle = idle, .total = total};
 }
 
 mem_stat get_mem_usage(void) {
@@ -86,13 +102,14 @@ mem_stat get_mem_usage(void) {
 
 // Get CPU usage percentage over a sample duration.
 int get_cpu_usage(useconds_t sample_duration) {
-  cpu_stat s0 = get_cpu_stat(), s1 = {};
-  do {
-    usleep(sample_duration);  // XXX: lazy hack
-    s1 = get_cpu_stat();
-  } while (s1.total == s0.total);
+  cpu_stat s0 = get_cpu_stat();
+  usleep(sample_duration);
+  cpu_stat s1 = get_cpu_stat();
   int64_t total = s1.total - s0.total;
   int64_t busy = total - (s1.idle - s0.idle);
+  // The number of ticks can be non-increasing due to integer wrap-around or too
+  // short sample duration.
+  if (total <= 0 || busy < 0 || busy > total) return 0;
   return (100 * busy + total / 2) / total;
 }
 
