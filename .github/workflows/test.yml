@@ -2,11 +2,17 @@ name: test
 on: [push]
 jobs:
   test:
-    name: Build and test on Ubuntu and macOS
-    runs-on: ${{ matrix.os }}
+    name: Build and test
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os:
+          # intel
+          - macos-13
+          - ubuntu-latest
+          # arm64
+          - ubuntu-24.04-arm
+          - macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: mlugg/setup-zig@v1
