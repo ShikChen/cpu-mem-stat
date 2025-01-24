@@ -1,6 +1,8 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 
 #define CHECK(expr)                                                    \
@@ -22,6 +24,13 @@ typedef struct {
 } mem_stat;
 
 const long long MEM_FORMAT_THRESHOLD = 8LL << 30;
+
+void sleep_ms(int duration_ms) {
+  // usleep() is deprecated and clock_nanosleep() is not available on macOS.
+  struct timespec ts = {.tv_sec = duration_ms / 1000,
+                        .tv_nsec = (duration_ms % 1000) * 1000000};
+  while (nanosleep(&ts, &ts) == -1 && errno == EINTR);
+}
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -101,9 +110,9 @@ mem_stat get_mem_usage(void) {
 #endif
 
 // Get CPU usage percentage over a sample duration.
-int get_cpu_usage(useconds_t sample_duration) {
+int get_cpu_usage(int sample_duration_ms) {
   cpu_stat s0 = get_cpu_stat();
-  usleep(sample_duration);
+  sleep_ms(sample_duration_ms);
   cpu_stat s1 = get_cpu_stat();
   int64_t total = s1.total - s0.total;
   int64_t busy = total - (s1.idle - s0.idle);
@@ -114,13 +123,8 @@ int get_cpu_usage(useconds_t sample_duration) {
 }
 
 int main(int argc, char *argv[]) {
-  useconds_t sample_duration;
-  if (argc >= 2) {
-    sample_duration = strtod(argv[1], NULL) * 1e6;
-  } else {
-    sample_duration = 100000;
-  }
-  int cpu = get_cpu_usage(sample_duration);
+  int sample_duration_ms = argc >= 2 ? atoi(argv[1]) : 100;
+  int cpu = get_cpu_usage(sample_duration_ms);
   mem_stat mem = get_mem_usage();
   if (mem.total <= MEM_FORMAT_THRESHOLD) {
     printf("%3d%% %lld/%lldM\n", cpu, mem.used >> 20, mem.total >> 20);
