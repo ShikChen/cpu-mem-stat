@@ -40,4 +40,8 @@ jobs:
           name: release-targets
           path: zig-out/
       - name: Run binary
-        run: ./zig-out/${{ matrix.target }}/cpu-mem-stat
+        run: |
+          chmod +x "${EXE}"
+          "${EXE}"
+        env:
+          EXE: ./zig-out/${{ matrix.target }}/cpu-mem-stat
