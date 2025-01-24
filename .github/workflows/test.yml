@@ -3,44 +3,41 @@ on: [push]
 
 jobs:
   build:
-    name: Cross compile
+    name: Build release targets
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target:
-          - aarch64-linux-gnu
-          - aarch64-macos
-          - x86_64-linux-gnu
-          - x86_64-macos
     steps:
       - uses: actions/checkout@v3
       - uses: mlugg/setup-zig@v1
-      - name: Cross compile for ${{ matrix.target }}
-        run: zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseSafe
+      - name: Build
+        run: zig build release --summary all
+      - name: Inspect binaries
+        run: ls -lh zig-out/*
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}
-          path: zig-out/bin/cpu-mem-stat
+          name: release-targets
+          path: zig-out/
   test:
     name: Download and run
     needs: [build]
     strategy:
       matrix:
         include:
+          # TODO: Arm64 ubuntu runner is not supported in private repo yet.
+          # TODO: Run gnu & musl in one job.
           - os: macos-latest
-            artifact: aarch64-macos
+            target: aarch64-macos
           - os: ubuntu-latest
-            artifact: x86_64-linux-gnu
+            target: x86_64-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-linux-musl
           - os: macos-13
-            artifact: x86_64-macos
+            target: x86_64-macos
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ./
-      - name: Make binary executable
-        run: chmod +x ./cpu-mem-stat
+          name: release-targets
+          path: zig-out/
       - name: Run binary
-        run: ./cpu-mem-stat
+        run: ./zig-out/${{ matrix.target }}/cpu-mem-stat
