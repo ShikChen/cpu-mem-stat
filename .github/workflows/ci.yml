@@ -1,4 +1,4 @@
-name: test
+name: ci
 on: [push]
 
 jobs:
@@ -40,8 +40,6 @@ jobs:
           name: release-targets
           path: zig-out/
       - name: Run binary
-        run: |
-          chmod +x "${EXE}"
-          "${EXE}"
+        run: chmod +x "${EXE}" && "${EXE}"
         env:
           EXE: ./zig-out/${{ matrix.target }}/cpu-mem-stat
