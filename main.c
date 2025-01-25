@@ -24,7 +24,18 @@ typedef struct {
   int64_t total;
 } mem_stat;
 
-const long long MEM_FORMAT_THRESHOLD = 8LL << 30;
+typedef struct {
+  char name;
+  int64_t value;
+} mem_unit;
+
+enum : int64_t {
+  MiB = INT64_C(1) << 20,
+  GiB = INT64_C(1) << 30,
+  TiB = INT64_C(1) << 40,
+};
+
+int64_t round_div(int64_t a, int64_t b) { return (2 * a + b) / (2 * b); }
 
 void sleep_ms(int duration_ms) {
   // usleep() is deprecated and clock_nanosleep() is not available on macOS.
@@ -120,19 +131,38 @@ int get_cpu_usage(int sample_duration_ms) {
   // The number of ticks can be non-increasing due to integer wrap-around or too
   // short sample duration.
   if (total <= 0 || busy < 0 || busy > total) return 0;
-  return (100 * busy + total / 2) / total;
+  return round_div(100 * busy, total);
+}
+
+mem_unit get_best_unit(int64_t value) {
+  if (value <= 8 * GiB) {
+    return (mem_unit){.name = 'M', .value = MiB};
+  } else if (value <= 8 * TiB) {
+    return (mem_unit){.name = 'G', .value = GiB};
+  } else {
+    return (mem_unit){.name = 'T', .value = TiB};
+  }
 }
 
 int main(int argc, char *argv[]) {
   int sample_duration_ms = argc >= 2 ? atoi(argv[1]) : 100;
   int cpu = get_cpu_usage(sample_duration_ms);
   mem_stat mem = get_mem_usage();
-  if (mem.total <= MEM_FORMAT_THRESHOLD) {
-    printf("%3d%% %" PRId64 "/%" PRId64 "M\n", cpu, mem.used >> 20,
-           mem.total >> 20);
+  mem_unit unit = get_best_unit(mem.total);
+  if (100 * mem.total >= 9995 * unit.value) {
+    int used = round_div(mem.used, unit.value);
+    int total = round_div(mem.total, unit.value);
+    printf("%3d%% %d/%d%c\n", cpu, used, total, unit.name);
   } else {
-    printf("%3d%% %.1f/%.1fG\n", cpu, 1.0 * mem.used / (1 << 30),
-           1.0 * mem.total / (1 << 30));
+    int used = round_div(mem.used * 10, unit.value);
+    int total = round_div(mem.total * 10, unit.value);
+    if (total % 10 == 0) {
+      printf("%3d%% %d.%d/%d%c\n", cpu, used / 10, used % 10, total / 10,
+             unit.name);
+    } else {
+      printf("%3d%% %d.%d/%d.%d%c\n", cpu, used / 10, used % 10, total / 10,
+             total % 10, unit.name);
+    }
   }
   return 0;
 }
