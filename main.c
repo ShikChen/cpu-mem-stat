@@ -33,9 +33,10 @@ enum : int64_t {
   MiB = INT64_C(1) << 20,
   GiB = INT64_C(1) << 30,
   TiB = INT64_C(1) << 40,
+  PiB = INT64_C(1) << 50,
 };
 
-int64_t round_div(int64_t a, int64_t b) { return (2 * a + b) / (2 * b); }
+int64_t round_div(int64_t a, int64_t b) { return (a + b / 2) / b; }
 
 void sleep_ms(int duration_ms) {
   // usleep() is deprecated and clock_nanosleep() is not available on macOS.
@@ -103,6 +104,8 @@ cpu_stat get_cpu_stat(void) {
   long long user = 0, nice = 0, system = 0, idle = 0;
   int ret = fscanf(fp, "cpu %lld %lld %lld %lld", &user, &nice, &system, &idle);
   CHECK(ret == 4);
+  ret = fclose(fp);
+  CHECK(ret == 0);
   return (cpu_stat){.idle = idle, .total = user + nice + system + idle};
 }
 
@@ -113,7 +116,7 @@ mem_stat get_mem_usage(void) {
   int ret =
       fscanf(fp, "MemTotal: %lld kB\nMemFree: %lld kB\nMemAvailable: %lld kB\n",
              &mem_total, &mem_unused, &mem_unused);
-  // May not have MemAvailable on older kernels.
+  // MemAvailable is only available since Linux 3.14.
   CHECK(ret >= 2);
   return (mem_stat){.used = (mem_total - mem_unused) << 10,
                     .total = mem_total << 10};
@@ -128,8 +131,8 @@ int get_cpu_usage(int sample_duration_ms) {
   cpu_stat s1 = get_cpu_stat();
   int64_t total = s1.total - s0.total;
   int64_t busy = total - (s1.idle - s0.idle);
-  // The number of ticks can be non-increasing due to integer wrap-around or too
-  // short sample duration.
+  // The number of ticks can be non-increasing due to integer wrap-around.
+  // It's ok with returning a transient 0% in these cases.
   if (total <= 0 || busy < 0 || busy > total) return 0;
   return round_div(100 * busy, total);
 }
@@ -139,8 +142,10 @@ mem_unit get_best_unit(int64_t value) {
     return (mem_unit){.name = 'M', .value = MiB};
   } else if (value <= 8 * TiB) {
     return (mem_unit){.name = 'G', .value = GiB};
-  } else {
+  } else if (value <= 8 * PiB) {
     return (mem_unit){.name = 'T', .value = TiB};
+  } else {
+    return (mem_unit){.name = 'P', .value = PiB};
   }
 }
 
