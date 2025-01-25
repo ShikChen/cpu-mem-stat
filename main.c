@@ -30,6 +30,7 @@ typedef struct {
 } mem_unit;
 
 enum : int64_t {
+  KiB = INT64_C(1) << 10,
   MiB = INT64_C(1) << 20,
   GiB = INT64_C(1) << 30,
   TiB = INT64_C(1) << 40,
@@ -118,8 +119,8 @@ mem_stat get_mem_usage(void) {
              &mem_total, &mem_unused, &mem_unused);
   // MemAvailable is only available since Linux 3.14.
   CHECK(ret >= 2);
-  return (mem_stat){.used = (mem_total - mem_unused) << 10,
-                    .total = mem_total << 10};
+  return (mem_stat){.used = (mem_total - mem_unused) * KiB,
+                    .total = mem_total * KiB};
 }
 
 #endif
