@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,7 +128,8 @@ int main(int argc, char *argv[]) {
   int cpu = get_cpu_usage(sample_duration_ms);
   mem_stat mem = get_mem_usage();
   if (mem.total <= MEM_FORMAT_THRESHOLD) {
-    printf("%3d%% %lld/%lldM\n", cpu, mem.used >> 20, mem.total >> 20);
+    printf("%3d%% %" PRId64 "/%" PRId64 "M\n", cpu, mem.used >> 20,
+           mem.total >> 20);
   } else {
     printf("%3d%% %.1f/%.1fG\n", cpu, 1.0 * mem.used / (1 << 30),
            1.0 * mem.total / (1 << 30));

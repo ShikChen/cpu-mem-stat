@@ -17,7 +17,10 @@ pub fn buildRelease(b: *std.Build) !void {
             .target = b.resolveTargetQuery(target),
             .optimize = .ReleaseSmall,
         });
-        target_exe.addCSourceFiles(.{ .files = &.{"main.c"} });
+        target_exe.addCSourceFiles(.{
+            .files = &.{"main.c"},
+            .flags = &.{ "-Wall", "-Werror" },
+        });
         target_exe.linkLibC();
         const target_output = b.addInstallArtifact(target_exe, .{
             .dest_dir = .{
