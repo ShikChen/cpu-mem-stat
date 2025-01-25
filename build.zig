@@ -19,7 +19,7 @@ pub fn buildRelease(b: *std.Build) !void {
         });
         target_exe.addCSourceFiles(.{
             .files = &.{"main.c"},
-            .flags = &.{ "-Wall", "-Werror" },
+            .flags = &.{ "-std=gnu23", "-Wall", "-Werror" },
         });
         target_exe.linkLibC();
         const target_output = b.addInstallArtifact(target_exe, .{
