@@ -9,6 +9,11 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl },
 };
 
+const cSourceFilesOptions: std.Build.Module.AddCSourceFilesOptions = .{
+    .files = &.{ "main.c", "lib.c" },
+    .flags = &.{ "-std=gnu23", "-Wall", "-Werror" },
+};
+
 pub fn buildRelease(b: *std.Build) !void {
     const release_step = b.step("release", "Build release targets");
     for (targets) |target| {
@@ -17,10 +22,7 @@ pub fn buildRelease(b: *std.Build) !void {
             .target = b.resolveTargetQuery(target),
             .optimize = .ReleaseSmall,
         });
-        target_exe.addCSourceFiles(.{
-            .files = &.{"main.c"},
-            .flags = &.{ "-std=gnu23", "-Wall", "-Werror" },
-        });
+        target_exe.addCSourceFiles(cSourceFilesOptions);
         target_exe.linkLibC();
         const target_output = b.addInstallArtifact(target_exe, .{
             .dest_dir = .{
@@ -39,7 +41,7 @@ pub fn build(b: *std.Build) !void {
         .target = b.standardTargetOptions(.{}),
         .optimize = b.standardOptimizeOption(.{}),
     });
-    exe.addCSourceFiles(.{ .files = &.{"main.c"} });
+    exe.addCSourceFiles(cSourceFilesOptions);
     exe.linkLibC();
     b.installArtifact(exe);
 
