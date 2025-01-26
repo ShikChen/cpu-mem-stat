@@ -49,5 +49,15 @@ pub fn build(b: *std.Build) !void {
     const run_step = b.step("run", "Run the application");
     run_step.dependOn(&run_exe.step);
 
+    const test_exe = b.addTest(.{ .root_source_file = b.path("test.zig") });
+    test_exe.addCSourceFiles(
+        .{ .files = &.{"lib.c"}, .flags = &.{"-std=gnu23"} },
+    );
+    test_exe.linkLibC();
+    test_exe.addIncludePath(b.path("."));
+    const run_test_exe = b.addRunArtifact(test_exe);
+    const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&run_test_exe.step);
+
     try buildRelease(b);
 }

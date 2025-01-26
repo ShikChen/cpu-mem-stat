@@ -144,16 +144,16 @@ void format_stats(int cpu, mem_stat mem, char *buf, size_t size) {
   if (100 * mem.total >= 9995 * unit.value) {
     int used = round_div(mem.used, unit.value);
     int total = round_div(mem.total, unit.value);
-    len = snprintf(buf, size, "%3d%% %d/%d%c\n", cpu, used, total, unit.name);
+    len = snprintf(buf, size, "%3d%% %d/%d%c", cpu, used, total, unit.name);
   } else {
     int used = round_div(mem.used * 10, unit.value);
     int total = round_div(mem.total * 10, unit.value);
     if (total % 10 == 0) {
-      len = snprintf(buf, size, "%3d%% %d.%d/%d%c\n", cpu, used / 10, used % 10,
-               total / 10, unit.name);
+      len = snprintf(buf, size, "%3d%% %d.%d/%d%c", cpu, used / 10, used % 10,
+                     total / 10, unit.name);
     } else {
-      len = snprintf(buf, size, "%3d%% %d.%d/%d.%d%c\n", cpu, used / 10, used % 10,
-               total / 10, total % 10, unit.name);
+      len = snprintf(buf, size, "%3d%% %d.%d/%d.%d%c", cpu, used / 10,
+                     used % 10, total / 10, total % 10, unit.name);
     }
   }
   CHECK(len > 0 && len < size);
