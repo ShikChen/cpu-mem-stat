@@ -139,20 +139,22 @@ static mem_unit get_best_unit(int64_t value) {
 }
 
 void format_stats(int cpu, mem_stat mem, char *buf, size_t size) {
+  int len = 0;
   mem_unit unit = get_best_unit(mem.total);
   if (100 * mem.total >= 9995 * unit.value) {
     int used = round_div(mem.used, unit.value);
     int total = round_div(mem.total, unit.value);
-    snprintf(buf, size, "%3d%% %d/%d%c\n", cpu, used, total, unit.name);
+    len = snprintf(buf, size, "%3d%% %d/%d%c\n", cpu, used, total, unit.name);
   } else {
     int used = round_div(mem.used * 10, unit.value);
     int total = round_div(mem.total * 10, unit.value);
     if (total % 10 == 0) {
-      snprintf(buf, size, "%3d%% %d.%d/%d%c\n", cpu, used / 10, used % 10,
+      len = snprintf(buf, size, "%3d%% %d.%d/%d%c\n", cpu, used / 10, used % 10,
                total / 10, unit.name);
     } else {
-      snprintf(buf, size, "%3d%% %d.%d/%d.%d%c\n", cpu, used / 10, used % 10,
+      len = snprintf(buf, size, "%3d%% %d.%d/%d.%d%c\n", cpu, used / 10, used % 10,
                total / 10, total % 10, unit.name);
     }
   }
+  CHECK(len > 0 && len < size);
 }
