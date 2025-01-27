@@ -1,6 +1,7 @@
 #include "lib.h"
 
 #include <errno.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,11 @@
     fprintf(stderr, "Check failed at line %d: %s\n", __LINE__, #expr); \
     exit(1);                                                           \
   }
+
+typedef struct {
+  char *buf;
+  size_t size;
+} formatter;
 
 typedef struct {
   char name;
@@ -32,6 +38,17 @@ static void sleep_ms(int duration_ms) {
   struct timespec ts = {.tv_sec = duration_ms / 1000,
                         .tv_nsec = (duration_ms % 1000) * 1000000};
   while (nanosleep(&ts, &ts) == -1 && errno == EINTR);
+}
+
+[[gnu::format(printf, 2, 3)]]
+static void fmt_print(formatter *f, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  int n = vsnprintf(f->buf, f->size, fmt, args);
+  va_end(args);
+  CHECK(n >= 0 && (size_t)n < f->size);
+  f->buf += n;
+  f->size -= n;
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -139,22 +156,23 @@ static mem_unit get_best_unit(int64_t value) {
 }
 
 void format_stats(int cpu, mem_stat mem, char *buf, size_t size) {
-  int len = 0;
+  formatter f = {.buf = buf, .size = size};
+  fmt_print(&f, "%3d%% ", cpu);
+
   mem_unit unit = get_best_unit(mem.total);
   if (100 * mem.total >= 9995 * unit.value) {
     int used = round_div(mem.used, unit.value);
     int total = round_div(mem.total, unit.value);
-    len = snprintf(buf, size, "%3d%% %d/%d%c", cpu, used, total, unit.name);
+    fmt_print(&f, "%d/%d", used, total);
   } else {
     int used = round_div(mem.used * 10, unit.value);
     int total = round_div(mem.total * 10, unit.value);
     if (total % 10 == 0) {
-      len = snprintf(buf, size, "%3d%% %d.%d/%d%c", cpu, used / 10, used % 10,
-                     total / 10, unit.name);
+      fmt_print(&f, "%d.%d/%d", used / 10, used % 10, total / 10);
     } else {
-      len = snprintf(buf, size, "%3d%% %d.%d/%d.%d%c", cpu, used / 10,
-                     used % 10, total / 10, total % 10, unit.name);
+      fmt_print(&f, "%d.%d/%d.%d", used / 10, used % 10, total / 10,
+                total % 10);
     }
   }
-  CHECK(len > 0 && len < size);
+  fmt_print(&f, "%c", unit.name);
 }
