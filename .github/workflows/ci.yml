@@ -8,6 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: mlugg/setup-zig@v1
+      - name: Run unit test
+        run: zig build test --summary all
       - name: Build
         run: zig build release --summary all
       - name: Inspect binaries
