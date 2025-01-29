@@ -4,15 +4,15 @@
 
 #include "lib.h"
 
-const int DEFAULT_DURATION_MS = 100;
+const int DEFAULT_DURATION_MS = 200;
 
 // TODO: Consider making the output format customizable.
 typedef struct {
   int duration_ms;
 } stat_opts;
 
-static void print_help(const char *progname) {
-  printf("Usage: %s [options]\n\n", progname);
+static void print_help(const char *prog) {
+  printf("Usage: %s [options]\n\n", prog);
   printf("Options:\n");
   printf("  -d, --duration <ms>  Sample duration in milliseconds");
   printf(" (default: %d)\n", DEFAULT_DURATION_MS);
