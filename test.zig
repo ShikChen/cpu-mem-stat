@@ -9,10 +9,9 @@ const c = @cImport({
 
 test "get_cpu_stat" {
     const stat = c.get_cpu_stat();
+    // Ticks may wrap around, so we cannot compare idle and total directly.
     try expect(stat.idle >= 0);
     try expect(stat.total > 0);
-    // We cannot check idle <= total because the ticks might have wrapped
-    // around.
 }
 
 test "get_mem_stat" {

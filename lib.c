@@ -56,7 +56,7 @@ cpu_stat get_cpu_stat(void) {
   // for the implementation of host_processor_info().
   //
   // Note that we don't use host_statistics() with HOST_CPU_LOAD_INFO because
-  // its update frquency is too low.
+  // its update frequency is too low.
   natural_t cpu_count = 0;
   processor_info_array_t info = NULL;
   mach_msg_type_number_t info_count = 0;
@@ -113,10 +113,10 @@ mem_stat get_mem_stat(void) {
   FILE *fp = fopen("/proc/meminfo", "r");
   CHECK(fp != NULL);
   long long mem_total = 0, mem_unused = 0;
+  // MemAvailable is only available since Linux 3.14, so `ret` can be 2 or 3.
   int ret =
       fscanf(fp, "MemTotal: %lld kB\nMemFree: %lld kB\nMemAvailable: %lld kB\n",
              &mem_total, &mem_unused, &mem_unused);
-  // MemAvailable is only available since Linux 3.14.
   CHECK(ret >= 2);
   return (mem_stat){.used = (mem_total - mem_unused) << 10,
                     .total = mem_total << 10};
@@ -132,7 +132,7 @@ int sample_cpu_usage(int duration_ms) {
   int64_t total = s1.total - s0.total;
   int64_t busy = total - (s1.idle - s0.idle);
   // The number of ticks can be non-increasing due to integer wrap-around.
-  // It's ok with returning a transient 0% in these cases.
+  // It's okay to return a transient 0% in these cases.
   if (total <= 0 || busy < 0 || busy > total) return 0;
   return round_div(100 * busy, total);
 }
