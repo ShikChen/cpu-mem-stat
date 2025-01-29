@@ -28,9 +28,8 @@ static stat_opts parse_args(int argc, char *argv[]) {
       {0, 0, 0, 0},
   };
 
-  // TODO: Change NULL to nullptr after we have C23 compdb.
   int opt = 0;
-  while ((opt = getopt_long(argc, argv, "d:h", long_opts, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "d:h", long_opts, nullptr)) != -1) {
     switch (opt) {
       case 'd':
         opts.duration_ms = atoi(optarg);

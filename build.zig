@@ -11,6 +11,8 @@ const targets: []const std.Target.Query = &.{
 
 const cSourceFilesOptions: std.Build.Module.AddCSourceFilesOptions = .{
     .files = &.{ "main.c", "lib.c" },
+    // Sync with compile_flags.txt.
+    // TODO: Can we generate this from compile_flags.txt automatically?
     .flags = &.{ "-std=gnu23", "-Wall", "-Werror" },
 };
 
