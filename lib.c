@@ -140,18 +140,19 @@ int sample_cpu_usage(int duration_ms) {
 }
 
 static mem_unit get_best_unit(int64_t value) {
-  static const mem_unit units[5] = {
+  static const mem_unit units[] = {
       {.name = 'K', .value = INT64_C(1) << 10},
       {.name = 'M', .value = INT64_C(1) << 20},
       {.name = 'G', .value = INT64_C(1) << 30},
       {.name = 'T', .value = INT64_C(1) << 40},
       {.name = 'P', .value = INT64_C(1) << 50},
   };
+  const int n = sizeof(units) / sizeof(units[0]);
   // 9999PB would overflow int64_t so it's not checked in this loop.
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < n - 1; i++) {
     if (value < 9999 * units[i].value + units[i].value / 2) return units[i];
   }
-  return units[4];
+  return units[n - 1];
 }
 
 static int fmt_num(formatter *f, int64_t value, int64_t unit, bool trim_zero) {
