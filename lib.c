@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,14 +24,6 @@ typedef struct {
   int64_t value;
 } mem_unit;
 
-enum : int64_t {
-  KiB = INT64_C(1) << 10,
-  MiB = INT64_C(1) << 20,
-  GiB = INT64_C(1) << 30,
-  TiB = INT64_C(1) << 40,
-  PiB = INT64_C(1) << 50,
-};
-
 static int64_t round_div(int64_t a, int64_t b) { return (a + b / 2) / b; }
 
 static void sleep_ms(int duration_ms) {
@@ -41,7 +34,7 @@ static void sleep_ms(int duration_ms) {
 }
 
 [[gnu::format(printf, 2, 3)]]
-static void fmt_print(formatter *f, const char *fmt, ...) {
+static int fmt_print(formatter *f, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   int n = vsnprintf(f->buf, f->size, fmt, args);
@@ -49,6 +42,7 @@ static void fmt_print(formatter *f, const char *fmt, ...) {
   CHECK(n >= 0 && (size_t)n < f->size);
   f->buf += n;
   f->size -= n;
+  return n;
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -124,8 +118,8 @@ mem_stat get_mem_stat(void) {
              &mem_total, &mem_unused, &mem_unused);
   // MemAvailable is only available since Linux 3.14.
   CHECK(ret >= 2);
-  return (mem_stat){.used = (mem_total - mem_unused) * KiB,
-                    .total = mem_total * KiB};
+  return (mem_stat){.used = (mem_total - mem_unused) << 10,
+                    .total = mem_total << 10};
 }
 
 #endif
@@ -144,35 +138,46 @@ int sample_cpu_usage(int duration_ms) {
 }
 
 static mem_unit get_best_unit(int64_t value) {
-  if (value <= 8 * GiB) {
-    return (mem_unit){.name = 'M', .value = MiB};
-  } else if (value <= 8 * TiB) {
-    return (mem_unit){.name = 'G', .value = GiB};
-  } else if (value <= 8 * PiB) {
-    return (mem_unit){.name = 'T', .value = TiB};
-  } else {
-    return (mem_unit){.name = 'P', .value = PiB};
+  static const mem_unit units[5] = {
+      {.name = 'K', .value = INT64_C(1) << 10},
+      {.name = 'M', .value = INT64_C(1) << 20},
+      {.name = 'G', .value = INT64_C(1) << 30},
+      {.name = 'T', .value = INT64_C(1) << 40},
+      {.name = 'P', .value = INT64_C(1) << 50},
+  };
+  // 9999PB would overflow int64_t so it's not checked in this loop.
+  for (int i = 0; i < 4; i++) {
+    if (value < 9999 * units[i].value + units[i].value / 2) return units[i];
+  }
+  return units[4];
+}
+
+static int fmt_num(formatter *f, int64_t value, int64_t unit, bool trim_zero) {
+  if (20 * value >= 1999 * unit) {  // >= 99.95
+    return fmt_print(f, "%d", (int)round_div(value, unit));
+  } else if (200 * value >= 1999 * unit) {  // >= 9.995
+    int u = round_div(value * 10, unit);
+    return trim_zero && u % 10 == 0 ? fmt_print(f, "%d", u / 10)
+                                    : fmt_print(f, "%d.%d", u / 10, u % 10);
+  } else {  // < 9.995
+    int u = round_div(value * 100, unit);
+    if (trim_zero) {
+      return u % 100 == 0  ? fmt_print(f, "%d", u / 100)
+             : u % 10 == 0 ? fmt_print(f, "%d.%d", u / 100, u % 100 / 10)
+                           : fmt_print(f, "%d.%02d", u / 100, u % 100);
+    } else {
+      return fmt_print(f, "%d.%02d", u / 100, u % 100);
+    }
   }
 }
 
 void format_stats(int cpu, mem_stat mem, char *buf, size_t size) {
   formatter f = {.buf = buf, .size = size};
   fmt_print(&f, "%3d%% ", cpu);
-
   mem_unit unit = get_best_unit(mem.total);
-  if (100 * mem.total >= 9995 * unit.value) {
-    int used = round_div(mem.used, unit.value);
-    int total = round_div(mem.total, unit.value);
-    fmt_print(&f, "%d/%d", used, total);
-  } else {
-    int used = round_div(mem.used * 10, unit.value);
-    int total = round_div(mem.total * 10, unit.value);
-    if (total % 10 == 0) {
-      fmt_print(&f, "%d.%d/%d", used / 10, used % 10, total / 10);
-    } else {
-      fmt_print(&f, "%d.%d/%d.%d", used / 10, used % 10, total / 10,
-                total % 10);
-    }
-  }
+  int used_width = fmt_num(&f, mem.used, unit.value, /*trim_zero=*/false);
+  fmt_print(&f, "/");
+  fmt_num(&f, mem.total, unit.value, /*trim_zero=*/true);
   fmt_print(&f, "%c", unit.name);
+  if (used_width == 3) fmt_print(&f, "B");
 }

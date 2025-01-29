@@ -27,11 +27,11 @@ test "sample_cpu_usage" {
     try expect(usage >= 0 and usage <= 100);
 }
 
-fn test_format(
+fn expectFormat(
+    expected: []const u8,
     cpu: c_int,
     mem_used: i64,
     mem_total: i64,
-    expected: []const u8,
 ) !void {
     var buf = [_:0]u8{0} ** 128;
     const mem = c.mem_stat{ .used = mem_used, .total = mem_total };
@@ -44,17 +44,20 @@ test "format_stats" {
     const M: i64 = 1 << 20;
     const G: i64 = 1 << 30;
     const T: i64 = 1 << 40;
+    const P: i64 = 1 << 50;
 
-    try test_format(0, 1 * G, 2 * G, "  0% 1024/2048M");
-    try test_format(50, 1 * G, 2 * G, " 50% 1024/2048M");
-    try test_format(100, 1 * G, 2 * G, "100% 1024/2048M");
+    try expectFormat("  0% 1024/2048M", 0, 1 * G, 2 * G);
+    try expectFormat(" 50% 1024/2048M", 50, 1 * G, 2 * G);
+    try expectFormat("100% 1024/2048M", 100, 1 * G, 2 * G);
 
-    try test_format(50, 5566 * M, 8 * G, " 50% 5566/8192M");
-    try test_format(50, 5566 * M, 8193 * M, " 50% 5.4/8G");
-    try test_format(50, 8 * G, 315 * G / 10, " 50% 8.0/31.5G");
-    try test_format(50, 8 * G, 32 * G, " 50% 8.0/32G");
-    try test_format(50, 50 * G, 9994 * G / 100, " 50% 50.0/99.9G");
-    try test_format(50, 50 * G, 9996 * G / 100, " 50% 50/100G");
-
-    try test_format(50, 1 * T, 256 * T, " 50% 1/256T");
+    try expectFormat(" 50% 5566/9999M", 50, 5566 * M, 9999 * M);
+    try expectFormat(" 50% 5.44/9.77G", 50, 5566 * M, 9999 * M + M / 2);
+    try expectFormat(" 50% 5.44/9.8G", 50, 5566 * M, 98 * G / 10);
+    try expectFormat(" 50% 8.00/31.5G", 50, 8 * G, 315 * G / 10);
+    try expectFormat(" 50% 8.00/32G", 50, 8 * G, 32 * G);
+    try expectFormat(" 50% 50.0/99.9G", 50, 50 * G, 9994 * G / 100);
+    try expectFormat(" 50% 50.0/100G", 50, 50 * G, 9996 * G / 100);
+    try expectFormat(" 50% 100/128GB", 50, 100 * G, 128 * G);
+    try expectFormat(" 50% 8.00/16T", 50, 8 * T, 16 * T);
+    try expectFormat(" 50% 8.00/16P", 50, 8 * P, 16 * P);
 }
