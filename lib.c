@@ -120,6 +120,8 @@ mem_stat get_mem_stat(void) {
       fscanf(fp, "MemTotal: %lld kB\nMemFree: %lld kB\nMemAvailable: %lld kB\n",
              &mem_total, &mem_unused, &mem_unused);
   CHECK(ret >= 2);
+  ret = fclose(fp);
+  CHECK(ret == 0);
   return (mem_stat){.used = (mem_total - mem_unused) << 10,
                     .total = mem_total << 10};
 }
@@ -163,7 +165,7 @@ static mem_unit get_best_unit(int64_t value) {
 static int fmt_num(formatter *f, int64_t value, int64_t unit, bool trim_zero) {
   if (20 * value >= 1999 * unit) {  // The midpoint of 99.9 and 100 is 99.95.
     return fmt_print(f, "%d", (int)round_div(value, unit));
-  } else if (200 * value >= 1999 * unit) { // (9.99 + 10) / 2 = 9.995
+  } else if (200 * value >= 1999 * unit) {  // (9.99 + 10) / 2 = 9.995
     int u = round_div(value * 10, unit);
     return trim_zero && u % 10 == 0 ? fmt_print(f, "%d", u / 10)
                                     : fmt_print(f, "%d.%d", u / 10, u % 10);
