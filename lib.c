@@ -8,11 +8,13 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define CHECK(expr)                                                    \
-  if (!(expr)) {                                                       \
-    fprintf(stderr, "Check failed at line %d: %s\n", __LINE__, #expr); \
-    exit(1);                                                           \
-  }
+#define CHECK(expr)                                                      \
+  do {                                                                   \
+    if (!(expr)) {                                                       \
+      fprintf(stderr, "Check failed at line %d: %s\n", __LINE__, #expr); \
+      exit(1);                                                           \
+    }                                                                    \
+  } while (false)
 
 typedef struct {
   char *buf;
