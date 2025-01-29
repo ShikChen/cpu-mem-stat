@@ -189,5 +189,7 @@ void format_stats(int cpu, mem_stat mem, char *buf, size_t size) {
   fmt_print(&f, "/");
   fmt_num(&f, mem.total, unit.value, /*trim_zero=*/true);
   fmt_print(&f, "%c", unit.name);
+  // Append 'B' to align output when used memory is only 3 chars, so
+  // "999/4096MB" and "1000/4096M" will have the same width.
   if (used_width == 3) fmt_print(&f, "B");
 }
