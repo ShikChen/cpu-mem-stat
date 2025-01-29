@@ -155,14 +155,19 @@ static mem_unit get_best_unit(int64_t value) {
   return units[n - 1];
 }
 
+// Formats a number as a ratio of value/unit with at most 4 characters.
+// Automatically chooses between 0-2 decimal places based on magnitude.
+// If trim_zero is true, removes trailing decimal zeros.
+// Returns formatted string length.
+// Requires: 0 <= value < 9999.5 * unit, unit <= 2^50.
 static int fmt_num(formatter *f, int64_t value, int64_t unit, bool trim_zero) {
-  if (20 * value >= 1999 * unit) {  // >= 99.95
+  if (20 * value >= 1999 * unit) {  // The midpoint of 99.9 and 100 is 99.95.
     return fmt_print(f, "%d", (int)round_div(value, unit));
-  } else if (200 * value >= 1999 * unit) {  // >= 9.995
+  } else if (200 * value >= 1999 * unit) { // (9.99 + 10) / 2 = 9.995
     int u = round_div(value * 10, unit);
     return trim_zero && u % 10 == 0 ? fmt_print(f, "%d", u / 10)
                                     : fmt_print(f, "%d.%d", u / 10, u % 10);
-  } else {  // < 9.995
+  } else {
     int u = round_div(value * 100, unit);
     if (trim_zero) {
       return u % 100 == 0  ? fmt_print(f, "%d", u / 100)
