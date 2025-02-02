@@ -18,6 +18,8 @@ const cSourceFilesOptions: std.Build.Module.AddCSourceFilesOptions = .{
 
 pub fn buildRelease(b: *std.Build) !void {
     const release_step = b.step("release", "Build release targets");
+    const archive_step = b.step("archive", "Build archive for release");
+    archive_step.dependOn(release_step);
     for (targets) |target| {
         const target_exe = b.addExecutable(.{
             .name = "cpu-mem-stat",
@@ -26,14 +28,31 @@ pub fn buildRelease(b: *std.Build) !void {
         });
         target_exe.addCSourceFiles(cSourceFilesOptions);
         target_exe.linkLibC();
-        const target_output = b.addInstallArtifact(target_exe, .{
+        const triple = try target.zigTriple(b.allocator);
+        const artifact = b.addInstallArtifact(target_exe, .{
             .dest_dir = .{
                 .override = .{
-                    .custom = try target.zigTriple(b.allocator),
+                    .custom = triple,
                 },
             },
         });
-        release_step.dependOn(&target_output.step);
+        release_step.dependOn(&artifact.step);
+
+        const wf = b.addWriteFiles();
+        const dist_exe = b.fmt("dist/{s}", .{target_exe.out_filename});
+        _ = wf.addCopyFile(target_exe.getEmittedBin(), dist_exe);
+
+        const tar = b.addSystemCommand(&.{ "tar", "zcvf" });
+        tar.setCwd(wf.getDirectory());
+        const out_name = b.fmt("cpu-mem-stat-{s}.tar.gz", .{triple});
+        const tar_file = tar.addOutputFileArg(out_name);
+        tar.addArgs(&.{ "-C", "dist", target_exe.out_filename });
+        const install_tar = b.addInstallFileWithDir(
+            tar_file,
+            .{ .custom = "archive" },
+            out_name,
+        );
+        archive_step.dependOn(&install_tar.step);
     }
 }
 

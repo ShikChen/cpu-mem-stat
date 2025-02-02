@@ -13,9 +13,11 @@ jobs:
       - uses: mlugg/setup-zig@v1
       - name: Run unit test
         run: zig build test --summary all
-      - name: Build
+      - name: Build release
         run: zig build release --summary all
-      - name: Inspect binaries
+      - name: Build archive
+        run: zig build archive --summary all
+      - name: Inspect output
         run: ls -lh zig-out/*
       - name: Upload artifact
         uses: actions/upload-artifact@v4
