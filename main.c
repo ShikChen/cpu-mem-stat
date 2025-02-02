@@ -4,6 +4,12 @@
 
 #include "lib.h"
 
+#ifndef VERSION  // Defined by the build system in release.
+#define VERSION "0.0.0"
+#endif
+
+static_assert("" VERSION "", "VERSION must be a string literal");
+
 const int DEFAULT_DURATION_MS = 200;
 
 // TODO: Consider making the output format customizable.
@@ -17,6 +23,7 @@ static void print_help(const char *prog) {
   printf("  -d, --duration <ms>  Sample duration in milliseconds");
   printf(" (default: %d)\n", DEFAULT_DURATION_MS);
   printf("  -h, --help           Display this help and exit\n");
+  printf("  -v, --version        Print version\n");
 }
 
 static stat_opts parse_args(int argc, char *argv[]) {
@@ -25,6 +32,7 @@ static stat_opts parse_args(int argc, char *argv[]) {
   struct option long_opts[] = {
       {"duration", required_argument, 0, 'd'},
       {"help", no_argument, 0, 'h'},
+      {"version", no_argument, 0, 'v'},
       {0, 0, 0, 0},
   };
 
@@ -36,6 +44,9 @@ static stat_opts parse_args(int argc, char *argv[]) {
         break;
       case 'h':
         print_help(argv[0]);
+        exit(0);
+      case 'v':
+        printf("cpu-mem-stat %s\n", VERSION);
         exit(0);
       default:
         print_help(argv[0]);
