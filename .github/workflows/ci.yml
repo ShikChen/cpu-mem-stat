@@ -72,3 +72,16 @@ jobs:
       - name: Check version
         run: |
           "${EXE}" --version | tee /dev/stderr | grep -q "$VERSION"
+  release:
+    name: Release the archives
+    needs: [build, test]
+    if: ${{ needs.version.outputs.version != '0.0.0' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: zig-out
+          path: zig-out/
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: zig-out/archive/*
