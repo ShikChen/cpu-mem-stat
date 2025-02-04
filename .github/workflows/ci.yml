@@ -2,7 +2,7 @@ name: ci
 on: [push]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   version:
