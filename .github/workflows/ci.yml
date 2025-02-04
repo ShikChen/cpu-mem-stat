@@ -71,4 +71,4 @@ jobs:
         run: chmod +x "${EXE}" && "${EXE}"
       - name: Check version
         run: |
-          "${EXE}" --version | tee /dev/stderr | greq -q "$VERSION"
+          "${EXE}" --version | tee /dev/stderr | grep -q "$VERSION"
