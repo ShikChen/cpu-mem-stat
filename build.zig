@@ -10,7 +10,11 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl },
 };
 
-pub fn buildRelease(b: *std.Build, c_opts: AddCSourceFilesOptions) !void {
+pub fn buildRelease(
+    b: *std.Build,
+    version: []const u8,
+    c_opts: AddCSourceFilesOptions,
+) !void {
     const release_step = b.step("release", "Build release targets");
     const archive_step = b.step("archive", "Build archive for release");
     archive_step.dependOn(release_step);
@@ -38,7 +42,7 @@ pub fn buildRelease(b: *std.Build, c_opts: AddCSourceFilesOptions) !void {
 
         const tar = b.addSystemCommand(&.{ "tar", "zcvf" });
         tar.setCwd(wf.getDirectory());
-        const out_name = b.fmt("cpu-mem-stat-{s}.tar.gz", .{triple});
+        const out_name = b.fmt("cpu-mem-stat-{s}-{s}.tar.gz", .{ version, triple });
         const tar_file = tar.addOutputFileArg(out_name);
         tar.addArgs(&.{ "-C", "dist", target_exe.out_filename });
         const install_tar = b.addInstallFileWithDir(
@@ -88,5 +92,5 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_test_exe.step);
 
-    try buildRelease(b, c_opts);
+    try buildRelease(b, version, c_opts);
 }
