@@ -5,28 +5,46 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Determine build version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+    steps:
+      - name: Extract version from tag
+        id: set_version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" =~ ^refs/tags/v(.+)$ ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+          fi
   build:
     name: Build release targets
+    needs: [version]
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
       - name: Run unit test
-        run: zig build test --summary all
+        run: zig build test -Dversion="${VERSION}" --summary all
       - name: Build release
-        run: zig build release --summary all
+        run: zig build release -Dversion="${VERSION}" --summary all
       - name: Build archive
-        run: zig build archive --summary all
+        run: zig build archive -Dversion="${VERSION}" --summary all
       - name: Inspect output
         run: ls -lh zig-out/*
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-targets
+          name: zig-out
           path: zig-out/
   test:
     name: Download and run
-    needs: [build]
+    needs: [build, version]
     strategy:
       matrix:
         include:
@@ -41,12 +59,16 @@ jobs:
           - os: macos-13
             target: x86_64-macos
     runs-on: ${{ matrix.os }}
+    env:
+      EXE: ./zig-out/${{ matrix.target }}/cpu-mem-stat
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: release-targets
+          name: zig-out
           path: zig-out/
       - name: Run binary
         run: chmod +x "${EXE}" && "${EXE}"
-        env:
-          EXE: ./zig-out/${{ matrix.target }}/cpu-mem-stat
+      - name: Check version
+        run: |
+          "${EXE}" --version | tee /dev/stderr | greq -q "$VERSION"
