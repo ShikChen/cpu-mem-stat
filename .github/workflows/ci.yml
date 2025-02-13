@@ -48,7 +48,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # TODO: Arm64 ubuntu runner is not supported in private repo yet.
           # TODO: Run gnu & musl in one job.
           - os: macos-latest
             target: aarch64-macos
@@ -56,6 +55,10 @@ jobs:
             target: x86_64-linux-gnu
           - os: ubuntu-latest
             target: x86_64-linux-musl
+          - os: ubuntu-24.04-arm
+            target: aarch64-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-linux-musl
           - os: macos-13
             target: x86_64-macos
     runs-on: ${{ matrix.os }}
