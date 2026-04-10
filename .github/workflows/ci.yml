@@ -53,6 +53,8 @@ jobs:
           # TODO: Run gnu & musl in one job.
           - os: macos-latest
             target: aarch64-macos
+          - os: macos-latest
+            target: x86_64-macos
           - os: ubuntu-latest
             target: x86_64-linux-gnu
           - os: ubuntu-latest
@@ -61,8 +63,6 @@ jobs:
             target: aarch64-linux-gnu
           - os: ubuntu-24.04-arm
             target: aarch64-linux-musl
-          - os: macos-13
-            target: x86_64-macos
     runs-on: ${{ matrix.os }}
     env:
       EXE: ./zig-out/${{ matrix.target }}/cpu-mem-stat
