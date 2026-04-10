@@ -37,7 +37,7 @@ static stat_opts parse_args(int argc, char *argv[]) {
   };
 
   int opt = 0;
-  while ((opt = getopt_long(argc, argv, "d:h", long_opts, nullptr)) != -1) {
+  while ((opt = getopt_long(argc, argv, "d:hv", long_opts, nullptr)) != -1) {
     switch (opt) {
       case 'd':
         opts.duration_ms = atoi(optarg);

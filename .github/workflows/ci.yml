@@ -77,9 +77,14 @@ jobs:
           path: zig-out/
       - name: Run binary
         run: chmod +x "${EXE}" && "${EXE}"
-      - name: Check version
+      - name: Check flags
         run: |
           "${EXE}" --version | tee /dev/stderr | grep -q "$VERSION"
+          "${EXE}" -v | grep -q "$VERSION"
+          "${EXE}" --help | grep -q "Usage"
+          "${EXE}" -h | grep -q "Usage"
+          "${EXE}" --duration 100
+          "${EXE}" -d 100
   release:
     name: Release the archives
     needs: [build, test]
