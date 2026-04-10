@@ -28,7 +28,9 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
       - name: Run unit test
         run: zig build test -Dversion="${VERSION}" --summary all
       - name: Build release
