@@ -27,7 +27,7 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
@@ -40,7 +40,7 @@ jobs:
       - name: Inspect output
         run: ls -lh zig-out/*
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zig-out
           path: zig-out/
@@ -68,7 +68,7 @@ jobs:
       EXE: ./zig-out/${{ matrix.target }}/cpu-mem-stat
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: zig-out
           path: zig-out/
@@ -83,7 +83,7 @@ jobs:
     if: ${{ needs.version.outputs.version != '0.0.0' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: zig-out
           path: zig-out/
