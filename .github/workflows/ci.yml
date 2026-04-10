@@ -3,6 +3,9 @@ on: [push]
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   version:
@@ -87,6 +90,10 @@ jobs:
         with:
           name: zig-out
           path: zig-out/
+      - name: Generate signed attestations
+        uses: actions/attest@v4
+        with:
+          subject-path: zig-out/archive/*
       - uses: softprops/action-gh-release@v2
         with:
           files: zig-out/archive/*
