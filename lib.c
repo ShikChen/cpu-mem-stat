@@ -17,7 +17,7 @@
   } while (false)
 
 typedef struct {
-  char *buf;
+  char* buf;
   size_t size;
 } formatter;
 
@@ -36,7 +36,7 @@ static void sleep_ms(int duration_ms) {
 }
 
 [[gnu::format(printf, 2, 3)]]
-static int fmt_print(formatter *f, const char *fmt, ...) {
+static int fmt_print(formatter* f, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   int n = vsnprintf(f->buf, f->size, fmt, args);
@@ -67,7 +67,7 @@ cpu_stat get_cpu_stat(void) {
   CHECK(ret == KERN_SUCCESS);
   int64_t idle = 0, total = 0;
   for (natural_t i = 0; i < cpu_count; i++) {
-    unsigned int *ticks = ((processor_cpu_load_info_data_t *)info)[i].cpu_ticks;
+    unsigned int* ticks = ((processor_cpu_load_info_data_t*)info)[i].cpu_ticks;
     idle += ticks[CPU_STATE_IDLE];
     for (int j = 0; j < CPU_STATE_MAX; j++) {
       total += ticks[j];
@@ -101,7 +101,7 @@ mem_stat get_mem_stat(void) {
 #else
 
 cpu_stat get_cpu_stat(void) {
-  FILE *fp = fopen("/proc/stat", "r");
+  FILE* fp = fopen("/proc/stat", "r");
   CHECK(fp != NULL);
   long long user = 0, nice = 0, system = 0, idle = 0;
   int ret = fscanf(fp, "cpu %lld %lld %lld %lld", &user, &nice, &system, &idle);
@@ -112,7 +112,7 @@ cpu_stat get_cpu_stat(void) {
 }
 
 mem_stat get_mem_stat(void) {
-  FILE *fp = fopen("/proc/meminfo", "r");
+  FILE* fp = fopen("/proc/meminfo", "r");
   CHECK(fp != NULL);
   long long mem_total = 0, mem_unused = 0;
   // MemAvailable is only available since Linux 3.14, so `ret` can be 2 or 3.
@@ -162,7 +162,7 @@ static mem_unit get_best_unit(int64_t value) {
 // If trim_zero is true, removes trailing decimal zeros.
 // Returns formatted string length.
 // Requires: 0 <= value < 9999.5 * unit, unit <= 2^50.
-static int fmt_num(formatter *f, int64_t value, int64_t unit, bool trim_zero) {
+static int fmt_num(formatter* f, int64_t value, int64_t unit, bool trim_zero) {
   if (20 * value >= 1999 * unit) {  // The midpoint of 99.9 and 100 is 99.95.
     return fmt_print(f, "%d", (int)round_div(value, unit));
   } else if (200 * value >= 1999 * unit) {  // (9.99 + 10) / 2 = 9.995
@@ -181,7 +181,7 @@ static int fmt_num(formatter *f, int64_t value, int64_t unit, bool trim_zero) {
   }
 }
 
-void format_stats(int cpu, mem_stat mem, char *buf, size_t size) {
+void format_stats(int cpu, mem_stat mem, char* buf, size_t size) {
   formatter f = {.buf = buf, .size = size};
   fmt_print(&f, "%3d%% ", cpu);
   mem_unit unit = get_best_unit(mem.total);

@@ -19,4 +19,4 @@ mem_stat get_mem_stat(void);
 // Get CPU usage percentage over a sample duration.
 int sample_cpu_usage(int duration_ms);
 
-void format_stats(int cpu, mem_stat mem, char *buf, size_t size);
+void format_stats(int cpu, mem_stat mem, char* buf, size_t size);

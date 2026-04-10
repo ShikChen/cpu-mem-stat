@@ -17,7 +17,7 @@ typedef struct {
   int duration_ms;
 } stat_opts;
 
-static void print_help(const char *prog) {
+static void print_help(const char* prog) {
   printf("Usage: %s [options]\n\n", prog);
   printf("Options:\n");
   printf("  -d, --duration <ms>  Sample duration in milliseconds");
@@ -26,7 +26,7 @@ static void print_help(const char *prog) {
   printf("  -v, --version        Print version\n");
 }
 
-static stat_opts parse_args(int argc, char *argv[]) {
+static stat_opts parse_args(int argc, char* argv[]) {
   stat_opts opts = {.duration_ms = DEFAULT_DURATION_MS};
 
   struct option long_opts[] = {
@@ -62,7 +62,7 @@ static stat_opts parse_args(int argc, char *argv[]) {
   return opts;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   stat_opts opts = parse_args(argc, argv);
   int cpu = sample_cpu_usage(opts.duration_ms);
   mem_stat mem = get_mem_stat();

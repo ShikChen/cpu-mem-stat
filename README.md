@@ -32,6 +32,7 @@ zig build run -- --help                           # run with arguments
 zig build test --summary all                      # test
 zig build release -Dversion=1.2.3 --summary all   # cross-compile for all targets
 zig build archive -Dversion=1.2.3 --summary all   # create release tarballs
+clang-format -i *.{c,h}                           # fix formatting
 ```
 
 ### Release
