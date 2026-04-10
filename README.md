@@ -1,6 +1,25 @@
 # cpu-mem-stat
 
-Extracted from my dotfiles to use GitHub Actions for prebuilt binaries.
+A compact, fixed-width cpu and memory usage monitor for tmux status bars.
+
+```
+$ cpu-mem-stat -d 900 # sample for 900ms
+ 42% 12.3/32G
+```
+
+## Supported platforms
+
+- macOS (aarch64, x86_64)
+- Linux (aarch64, x86_64, glibc and musl)
+
+## Install
+
+Download prebuilt binaries from [GitHub Releases](https://github.com/ShikChen/cpu-mem-stat/releases),
+or install with [mise](https://mise.jdx.dev/):
+
+```sh
+mise use --global github:ShikChen/cpu-mem-stat
+```
 
 ## Development
 
@@ -23,3 +42,7 @@ Push a version tag to trigger CI to build, test, and create a GitHub Release.
 git tag v1.2.3
 git push origin v1.2.3
 ```
+
+## Related projects
+
+- [tmux-mem-cpu-load](https://github.com/thewtex/tmux-mem-cpu-load)
